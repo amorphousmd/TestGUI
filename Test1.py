@@ -23,6 +23,8 @@ from solo_v2 import detect_center
 import time
 import socket
 from multiprocessing import Process
+import CameraUtils
+import TCPIP
 
 def createData(coords_list):
     list1 = [elem for coords in coords_list for elem in coords]
@@ -42,7 +44,8 @@ def zeroExtend(inputList):
 
 def clientUtilities(data):
     PORT = 5050
-    SERVER = "192.168.1.1"
+    # SERVER = "192.168.1.1"
+    SERVER = "127.0.0.1"
     ADDR = (SERVER, PORT)
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect(ADDR)
@@ -51,10 +54,10 @@ def clientUtilities(data):
         HEADER = 64
         FORMAT = 'utf-8'
         message = msg.encode(FORMAT)
-        # msg_length = len(message)
-        # send_length = str(msg_length).encode(FORMAT)
-        # send_length += b' ' * (HEADER - len(send_length))
-        # client.send(send_length)
+        msg_length = len(message)
+        send_length = str(msg_length).encode(FORMAT)
+        send_length += b' ' * (HEADER - len(send_length))
+        client.send(send_length)
         client.send(message)
 
     send(createData(zeroExtend(data)))
@@ -109,7 +112,7 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         self.loadButton.clicked.connect(self.loadImage)
         self.saveButton.clicked.connect(self.saveImage)
-        self.runButton.clicked.connect(self.runInference)
+        self.runButton.clicked.connect(self.runInferenceVideo)
         self.horizontalSlider.valueChanged['int'].connect(self.updateConfidence)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -119,7 +122,7 @@ class Ui_MainWindow(object):
 
 
     def loadImage(self):
-        self.filename = QFileDialog.getOpenFileName(filter="Image (*.*)")[0]
+        self.filename = QFileDialog.getOpenFileName(directory="C:/Users/LAPTOP/Desktop/Pics")[0]
         self.image = cv2.imread(self.filename)
         self.set_image(self.image)
 
@@ -178,11 +181,10 @@ class Ui_MainWindow(object):
         self.set_image(displayLabel)
 
     def runInferenceVideo(self):
-        sampleAllow = 1
         cfg = Config.fromfile('mmdetection/configs/solov2/solov2_light_r18_fpn_3x_coco.py')
         cfg.model.mask_head.num_classes = 1
 
-        checkpoint = 'hhn_solov2.pth'
+        checkpoint = 'solov2.pth'
         model = build_detector(cfg.model)
         checkpoint = load_checkpoint(model, checkpoint, map_location='cpu')
         model.CLASSES = checkpoint['meta']['CLASSES']
@@ -190,17 +192,23 @@ class Ui_MainWindow(object):
         model.to('cuda')
         model.eval()
 
+        time_process_start = 0
+        time_process_end = 0
+
         cap = cv2.VideoCapture(0)
         cap.set(3, 1080)
         cap.set(4, 640)
         while True:
             time_process_start = time.time()
+            score_thr = 0.9
             _, img = cap.read()
+            print(img.shape[0])
+            print(img.shape[1])
             result = inference_detector(model, img)
-            displayLabel = model.show_result(
+            img_show = model.show_result(
                 img,
                 result,
-                score_thr=self.thresholdValue,
+                score_thr=score_thr,
                 show=False,
                 wait_time=0,
                 win_name='result',
@@ -208,21 +216,14 @@ class Ui_MainWindow(object):
                 text_color=(200, 200, 200),
                 mask_color=None,
                 out_file=None)
-            center_list, emptylist = detect_center(img, result, self.thresholdValue)
-            if emptylist:
-                print(center_list)
-                thread = threading.Thread(target=clientUtilities, args=[center_list])
-                thread.start()
-                sampleAllow = 0
+            # center_list = detect_center(img, result, score_thr)
+            # for center in center_list:
+            #     img_show = cv2.circle(img_show, center, 3, (0, 0, 255), -1)
 
-            for center in center_list:
-                displayLabel = cv2.circle(displayLabel, center, 3, (0, 0, 255), -1)
-
-            self.time_detect = time.time() - time_process_start
-            cv2.putText(displayLabel, 'time_process(s):' + str(np.round(self.time_detect, 3)), (50, 110),
+            time_process_end = time.time() - time_process_start
+            cv2.putText(img_show, 'time_process(s):' + str(np.round(time_process_end, 3)), (50, 110),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (100, 255, 233), 2)
-            self.infTimeLabel.setText(str(self.time_detect))
-            self.set_image(displayLabel)
+            self.set_image(img_show)
 
             if cv2.waitKey(1) & 0xFF == 27:
                 break

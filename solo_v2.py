@@ -102,6 +102,22 @@ def detect_center(img, result, score_thr):
     return center_list
 
 
+def detect_center_bbox(result, score_thr):
+    center_list = []
+    for arrays in result:
+        for bboxes in arrays:
+            if bboxes[4] < score_thr:
+                pass
+            else:
+                tuple_list = []
+                tuple_list.append(int((bboxes[0]+bboxes[2])/2))
+                tuple_list.append(int((bboxes[1]+bboxes[3])/2))
+                # tuple_list.append(int(bboxes[0]))
+                # tuple_list.append(int(bboxes[1]))
+                center_list.append(tuple(tuple_list))
+    return center_list
+
+
 
 if __name__ == "__main__":
     cfg = Config.fromfile('mmdetection/configs/solov2/solov2_light_r18_fpn_3x_coco.py')

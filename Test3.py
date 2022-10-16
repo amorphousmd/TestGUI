@@ -19,6 +19,8 @@ from mmcv.runner import load_checkpoint
 from mmdet.apis import inference_detector, show_result_pyplot
 from mmdet.models import build_detector
 import numpy as np
+
+import TCPIP
 from solo_v2 import detect_center
 import time
 import CameraUtils
@@ -83,8 +85,8 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         self.loadButton.clicked.connect(self.loadImage)
         self.saveButton.clicked.connect(self.saveImage)
-        self.runButton.clicked.connect(self.runInference)
-        self.horizontalSlider.valueChanged['int'].connect(self.label_2.setNum)
+        self.runButton.clicked.connect(self.runInferenceVideo)
+        self.horizontalSlider.valueChanged['int'].connect(self.updateConfidence)
         self.loadCamCalibBtn.clicked.connect(self.loadCameraCalib)
         self.runCamCalibBtn.clicked.connect(self.runCameraCalib)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -96,7 +98,7 @@ class Ui_MainWindow(object):
         self.label_4.setText(filename)
 
     def runCameraCalib(self):
-        CameraUtils.runCalibration()
+        CameraUtils.runCalibration((7,4), (640, 480), 22)
 
     def updateConfidence(self, value):
         self.thresholdValue = value/100
@@ -125,9 +127,10 @@ class Ui_MainWindow(object):
         self.displayLabel.setPixmap(QtGui.QPixmap.fromImage(image))
 
     def runInference(self):
+        # cfg = Config.fromfile('mmdetection/configs/solov2/solov2_r50_fpn_3x_coco.py')
         cfg = Config.fromfile('mmdetection/configs/solov2/solov2_light_r18_fpn_3x_coco.py')
         cfg.model.mask_head.num_classes = 1
-        checkpoint = 'hhn_solov2.pth'
+        checkpoint = 'epoch_80.pth'
         model = build_detector(cfg.model)
         checkpoint = load_checkpoint(model, checkpoint, map_location='cpu')
         model.CLASSES = checkpoint['meta']['CLASSES']
@@ -158,8 +161,7 @@ class Ui_MainWindow(object):
         print(center_list)
         print('\nWorld Coordinates:\n')
         print(CameraUtils.convertPixelToWorld(center_list))
-        # process = Process(target=clientUtilities, args=[center_list])
-        # process.start()
+        TCPIP.sendData(CameraUtils.convertPixelToWorld(center_list))
 
         for center in center_list:
             displayLabel = cv2.circle(displayLabel, center, 10, (0, 0, 255), -1)
@@ -167,10 +169,11 @@ class Ui_MainWindow(object):
 
     def runInferenceVideo(self):
         sampleAllow = 1
-        cfg = Config.fromfile('mmdetection/configs/solov2/solov2_light_r18_fpn_3x_coco.py')
+        # cfg = Config.fromfile('mmdetection/configs/solov2/solov2_light_r18_fpn_3x_coco.py')
+        cfg = Config.fromfile('mmdetection/configs/solov2/solov2_r50_fpn_3x_coco.py')
         cfg.model.mask_head.num_classes = 1
 
-        checkpoint = 'hhn_solov2.pth'
+        checkpoint = 'latest.pth'
         model = build_detector(cfg.model)
         checkpoint = load_checkpoint(model, checkpoint, map_location='cpu')
         model.CLASSES = checkpoint['meta']['CLASSES']
@@ -179,12 +182,14 @@ class Ui_MainWindow(object):
         model.eval()
 
         cap = cv2.VideoCapture(0)
+        print('here')
         cap.set(3, 1080)
         cap.set(4, 640)
         while True:
             time_process_start = time.time()
             _, img = cap.read()
             result = inference_detector(model, img)
+            print(result)
             displayLabel = model.show_result(
                 img,
                 result,
@@ -196,12 +201,12 @@ class Ui_MainWindow(object):
                 text_color=(200, 200, 200),
                 mask_color=None,
                 out_file=None)
-            center_list, emptylist = detect_center(img, result, self.thresholdValue)
-            # if emptylist:
-            #     print(center_list)
-            #     # thread = threading.Thread(target=clientUtilities, args=[center_list])
-            #     # thread.start()
-            #     sampleAllow = 0
+            center_list = detect_center(img, result, self.thresholdValue)
+            print('\nPixel Coordinates:\n')
+            print(center_list)
+            print('\nWorld Coordinates:\n')
+            print(CameraUtils.convertPixelToWorld(center_list))
+            TCPIP.sendData(CameraUtils.convertPixelToWorld(center_list))
 
             for center in center_list:
                 displayLabel = cv2.circle(displayLabel, center, 3, (0, 0, 255), -1)

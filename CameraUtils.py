@@ -1,3 +1,5 @@
+import decimal
+
 import numpy as np
 import cv2 as cv
 import glob
@@ -5,6 +7,7 @@ import copy
 import sys
 import math
 import os
+from decimal import Decimal
 from PyQt5.QtWidgets import QFileDialog
 
 pixelToWorldMatrix = np.identity(3)
@@ -52,11 +55,33 @@ def loadCalibration():
     print(pixelToWorldMatrix, '\n')
     return os.path.relpath(filename, removepath)
 
-
-def runCalibration():
+# chessboardSize, frameSize, chessboardSquareMM
+def runCalibration(chessboardSize, frameSize, chessboardSquareMM):
     # Chess board definition
-    chessboardSize = (7, 4)
-    frameSize = (640, 480)
+    chessboardSize = chessboardSize
+    try:
+        assert type(chessboardSize) is tuple
+    except AssertionError:
+        print('Incorrect chessboardSize, make sure to input a 2 elelements tuple. Example: (7, 4)')
+        return 0
+    try:
+        assert len(chessboardSize) == 2
+    except AssertionError:
+        print('Incorrect chessboardSize, make sure to input a 2 elelements tuple. Example: (7, 4)')
+        return 0
+
+    frameSize = frameSize
+
+    try:
+        assert type(frameSize) is tuple
+    except AssertionError:
+        print('Incorrect frameSize, make sure to input a 2 elelements tuple. Example: (640, 480)')
+        return 0
+    try:
+        assert len(frameSize) == 2
+    except AssertionError:
+        print('Incorrect frameSize, make sure to input a 2 elelements tuple. Example: (640, 480)')
+        return 0
 
     # Termination criteria
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -65,7 +90,7 @@ def runCalibration():
     objp = np.zeros((chessboardSize[0] * chessboardSize[1], 3), np.float32)
     objp[:, :2] = np.mgrid[0:chessboardSize[0], 0:chessboardSize[1]].T.reshape(-1, 2)
 
-    size_of_chessboard_squares_mm = 22
+    size_of_chessboard_squares_mm = chessboardSquareMM
     objp = objp * size_of_chessboard_squares_mm
 
     # Arrays to store object points and image points from all the images.
@@ -178,7 +203,7 @@ def convertPixelToWorld(list):
             print("Wrong input size. Make sure the input form is (x,y)")
             return 0
         else:
-            output = (worldMatrix[0], worldMatrix[1])  # Remove the 1 in matrix
+            output = (float(round(Decimal(worldMatrix[0]), 3)), float(round(Decimal(worldMatrix[1]), 3)))  # Remove the 1 in matrix
             worldCoordsList.append(output)
     return worldCoordsList
 
@@ -186,6 +211,6 @@ def convertPixelToWorld(list):
 if __name__ == '__main__':
     testList = [(1302, 1104), (1207, 1268), (1420, 1580), (1284, 1547)]
     print(testList)
-    runCalibration()
+    runCalibration((7,4), (640, 480), 22)
+    pixelToWorldMatrix = np.load('./calibSaves/PtWMatrix.npy')
     print(convertPixelToWorld(testList))
-    loadCalibration()
