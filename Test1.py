@@ -112,7 +112,7 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         self.loadButton.clicked.connect(self.loadImage)
         self.saveButton.clicked.connect(self.saveImage)
-        self.runButton.clicked.connect(self.runInferenceVideo)
+        self.runButton.clicked.connect(self.runInference)
         self.horizontalSlider.valueChanged['int'].connect(self.updateConfidence)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 

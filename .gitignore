@@ -1,0 +1,11 @@
+
+test_videos/hnn_video_025.mp4
+test_videos/hnn_video_075.mp4
+training_weights/epoch_30.pth
+training_weights/epoch_80.pth
+training_weights/hhn_solov2.pth
+training_weights/rs50_weight.pth
+training_weights/solov2.pth
+training_weights/YOLOX40.pth
+training_weights/YOLOX80.pth
+mmdetection/

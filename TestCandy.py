@@ -146,7 +146,7 @@ class Ui_MainWindow(object):
     def runInference(self):
         cfg = Config.fromfile('mmdetection/configs/solov2/solov2_light_r18_fpn_3x_coco.py')
         cfg.model.mask_head.num_classes = 1
-        checkpoint = 'hhn_solov2.pth'
+        checkpoint = 'training_weights/hhn_solov2.pth'
         model = build_detector(cfg.model)
         checkpoint = load_checkpoint(model, checkpoint, map_location='cpu')
         model.CLASSES = checkpoint['meta']['CLASSES']
@@ -185,7 +185,7 @@ class Ui_MainWindow(object):
         cfg = Config.fromfile('mmdetection/configs/faster_rcnn/faster_rcnn_r50_caffe_fpn_mstrain_1x_coco.py')
         cfg.model.roi_head.bbox_head.num_classes = 1
 
-        checkpoint = 'epoch_30.pth'
+        checkpoint = 'training_weights/epoch_30.pth'
         model = build_detector(cfg.model)
         checkpoint = load_checkpoint(model, checkpoint, map_location='cpu')
         model.CLASSES = checkpoint['meta']['CLASSES']

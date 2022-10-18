@@ -113,7 +113,7 @@ class Ui_GUI1(object):
         if i == 1:
             cfg = Config.fromfile('mmdetection/configs/solov2/solov2_light_r18_fpn_3x_coco.py')
             cfg.model.mask_head.num_classes = 1
-            checkpoint = 'hhn_solov2.pth'
+            checkpoint = 'training_weights/hhn_solov2.pth'
             model = build_detector(cfg.model)
             checkpoint = load_checkpoint(model, checkpoint, map_location='cpu')
             model.CLASSES = checkpoint['meta']['CLASSES']
